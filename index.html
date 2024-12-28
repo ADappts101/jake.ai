@@ -1,135 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deepfake-like Analysis</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-            background-color: #f0f0f0;
-        }
-        header {
-            background-color: #333;
-            color: white;
-            padding: 10px 0;
-        }
-        canvas {
-            border: 1px solid #000;
-            margin: 20px auto;
-        }
-        .controls {
-            margin: 20px;
-        }
-        .controls button {
-            padding: 10px 20px;
-            margin: 10px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
-</head>
+<html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.js"></script>
+<script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
 <body>
-    <header>
-        <h1>Deepfake-like Analysis</h1>
-    </header>
+<h1>Image Classification</h1>
+<h2>With MobileNet and ml5.js</h2>
+<div id="myResult">Scanning ...</div>
+<input type="file" id="myImage" accept="image/*" multiple>
 
-    <div class="controls">
-        <input type="file" id="fileInput" accept="image/*" multiple>
-        <button onclick="analyzeImages()">Analyze Images</button>
-    </div>
+<script>
+// A variable to hold the image we want to classify
+let classifier;
+let img;
 
-    <canvas id="canvas" width="800" height="600"></canvas>
+// Initialize the Image Classifier method with MobileNet.
+classifier = ml5.imageClassifier("MobileNet");
+img = document.getElementById("myImage");
+classifier.classify(img, gotResult);
 
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const imagesArray = [];
-
-        function resizeAndAnalyze(image) {
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-
-            // Resize the image to a lower resolution (e.g., 50x50)
-            const targetWidth = 50;
-            const targetHeight = 50;
-            tempCanvas.width = targetWidth;
-            tempCanvas.height = targetHeight;
-            tempCtx.drawImage(image, 0, 0, targetWidth, targetHeight);
-
-            // Analyze pixels
-            const imageData = tempCtx.getImageData(0, 0, targetWidth, targetHeight);
-            const pixelData = imageData.data;
-            const analysis = {};
-
-            for (let i = 0; i < pixelData.length; i += 4) {
-                const r = pixelData[i];
-                const g = pixelData[i + 1];
-                const b = pixelData[i + 2];
-                const key = `${r},${g},${b}`;
-
-                if (analysis[key]) {
-                    analysis[key]++;
-                } else {
-                    analysis[key] = 1;
-                }
-            }
-
-            return analysis;
-        }
-
-        function compareAnalysis(baseAnalysis, newAnalysis) {
-            let matches = 0;
-            const baseKeys = Object.keys(baseAnalysis);
-
-            baseKeys.forEach(key => {
-                if (newAnalysis[key]) {
-                    matches += Math.min(baseAnalysis[key], newAnalysis[key]);
-                }
-            });
-
-            return matches / baseKeys.length;
-        }
-
-        function displayResult(image, matchPercentage) {
-            ctx.drawImage(image, 0, 0, canvas.width / 2, canvas.height / 2);
-            ctx.fillStyle = 'black';
-            ctx.font = '18px Arial';
-            ctx.fillText(`Match: ${(matchPercentage * 100).toFixed(2)}%`, 10, canvas.height - 20);
-        }
-
-        async function analyzeImages() {
-            if (imagesArray.length < 2) {
-                alert('Please upload at least two images to compare.');
-                return;
-            }
-
-            const baseImage = imagesArray[0];
-            const baseAnalysis = resizeAndAnalyze(baseImage);
-
-            for (let i = 1; i < imagesArray.length; i++) {
-                const currentImage = imagesArray[i];
-                const currentAnalysis = resizeAndAnalyze(currentImage);
-                const matchPercentage = compareAnalysis(baseAnalysis, currentAnalysis);
-                displayResult(currentImage, matchPercentage);
-            }
-        }
-
-        document.getElementById('fileInput').addEventListener('change', event => {
-            const files = event.target.files;
-            imagesArray.length = 0; // Clear previous images
-
-            Array.from(files).forEach(file => {
-                const img = new Image();
-                img.src = URL.createObjectURL(file);
-                img.onload = () => {
-                    imagesArray.push(img);
-                };
-            });
-        });
-    </script>
+// Callback function when classification has finished
+function gotResult(results) {
+  // Display the results
+  let label = results[0].label;
+  let confidence = (results[0].confidence * 100).toFixed(2);
+  document.getElementById("myResult").innerHTML = label + "<br>Confidence: " + confidence + "%";
+}
+</script>
 </body>
 </html>
